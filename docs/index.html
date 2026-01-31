@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日振島 釣果まとめ</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+
+    /* ─── Header ─── */
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #2d6a9f 100%);
+      color: white;
+      padding: 20px 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    header .subtitle {
+      font-size: 13px;
+      opacity: 0.85;
+      margin-top: 4px;
+    }
+    #update-time {
+      font-size: 11px;
+      opacity: 0.7;
+      margin-top: 4px;
+    }
+
+    /* ─── Filters ─── */
+    .filters {
+      background: white;
+      padding: 12px 16px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      border-bottom: 1px solid #e2e8f0;
+      position: sticky;
+      top: 82px;
+      z-index: 90;
+    }
+    .filter-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      padding: 6px 14px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 20px;
+      background: white;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .filter-btn:hover { border-color: #2d6a9f; color: #2d6a9f; }
+    .filter-btn.active {
+      background: #2d6a9f;
+      color: white;
+      border-color: #2d6a9f;
+    }
+    .filter-label {
+      font-size: 12px;
+      color: #718096;
+      font-weight: 600;
+      margin-right: 4px;
+      align-self: center;
+    }
+    .date-input {
+      padding: 6px 10px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+
+    /* ─── View toggle ─── */
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      margin-left: auto;
+    }
+    .view-btn {
+      padding: 6px 10px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .view-btn.active { background: #2d6a9f; color: white; border-color: #2d6a9f; }
+
+    /* ─── Stats bar ─── */
+    .stats-bar {
+      padding: 8px 16px;
+      background: #edf2f7;
+      font-size: 12px;
+      color: #718096;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* ─── Main content ─── */
+    main { padding: 16px; max-width: 1200px; margin: 0 auto; }
+
+    /* ─── Date group view ─── */
+    .date-group {
+      margin-bottom: 24px;
+    }
+    .date-header {
+      font-size: 16px;
+      font-weight: 700;
+      color: #2d3748;
+      padding: 8px 0;
+      border-bottom: 2px solid #2d6a9f;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .date-header .day-of-week {
+      font-size: 13px;
+      font-weight: 500;
+      color: #718096;
+    }
+
+    /* ─── Cards ─── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      transition: box-shadow 0.2s;
+      cursor: pointer;
+    }
+    .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+
+    .card-img-container {
+      position: relative;
+      width: 100%;
+      padding-top: 66%;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+    .card-img-container img {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+    }
+    .card-img-container .img-count {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.6);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+    }
+    .card-img-placeholder {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      color: #a0aec0;
+      font-size: 40px;
+    }
+
+    .card-body { padding: 12px; }
+    .card-source {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .source-yoshida { background: #ebf8ff; color: #2b6cb0; }
+    .source-miura { background: #f0fff4; color: #276749; }
+    .source-wakashio { background: #fefcbf; color: #975a16; }
+    .source-seike { background: #fed7e2; color: #97266d; }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-bottom: 6px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-body-text {
+      font-size: 12px;
+      color: #718096;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-date {
+      font-size: 11px;
+      color: #a0aec0;
+      margin-top: 8px;
+    }
+
+    /* ─── Modal ─── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 16px;
+      max-width: 700px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal-close {
+      position: sticky;
+      top: 0;
+      float: right;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      margin: 8px;
+      z-index: 10;
+    }
+    .modal-images { margin-bottom: 16px; }
+    .modal-images img {
+      width: 100%;
+      display: block;
+      margin-bottom: 4px;
+    }
+    .modal-body { padding: 16px; }
+    .modal-body h2 { font-size: 18px; margin-bottom: 8px; }
+    .modal-body .meta {
+      font-size: 13px;
+      color: #718096;
+      margin-bottom: 12px;
+    }
+    .modal-body .content {
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+    .modal-body .link {
+      display: inline-block;
+      margin-top: 12px;
+      color: #2d6a9f;
+      text-decoration: none;
+      font-size: 13px;
+    }
+    .modal-body .link:hover { text-decoration: underline; }
+
+    /* ─── Empty state ─── */
+    .empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: #a0aec0;
+    }
+    .empty .icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* ─── Loading ─── */
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: #718096;
+    }
+
+    @media (max-width: 600px) {
+      .cards { grid-template-columns: 1fr; }
+      .filters { flex-direction: column; align-items: stretch; }
+      .view-toggle { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>日振島 釣果まとめ</h1>
+  <div class="subtitle">愛媛県宇和島市 - 渡船屋の釣果情報を一覧で</div>
+  <div id="update-time"></div>
+</header>
+
+<div class="filters">
+  <span class="filter-label">渡船:</span>
+  <div class="filter-group" id="source-filters">
+    <button class="filter-btn active" data-source="all">すべて</button>
+  </div>
+
+  <span class="filter-label" style="margin-left:12px">日付:</span>
+  <input type="date" class="date-input" id="date-from" />
+  <span style="color:#718096;font-size:13px">〜</span>
+  <input type="date" class="date-input" id="date-to" />
+
+  <div class="view-toggle">
+    <button class="view-btn active" data-view="date" title="日付順">&#x1f4c5;</button>
+    <button class="view-btn" data-view="source" title="渡船別">&#x1f6a2;</button>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <span id="stats-count"></span>
+  <span id="stats-range"></span>
+</div>
+
+<main id="content">
+  <div class="loading">読み込み中...</div>
+</main>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-images" id="modal-images"></div>
+    <div class="modal-body">
+      <div class="card-source" id="modal-source"></div>
+      <h2 id="modal-title"></h2>
+      <div class="meta" id="modal-meta"></div>
+      <div class="content" id="modal-content"></div>
+      <a class="link" id="modal-link" href="#" target="_blank">元のページを見る →</a>
+    </div>
+  </div>
+</div>
+
+<script>
+let allData = [];
+let currentSource = "all";
+let currentView = "date";
+
+const SOURCE_CLASS = {
+  "よしだ屋": "source-yoshida",
+  "三浦渡船": "source-miura",
+  "わかしお渡船": "source-wakashio",
+  "清家渡船": "source-seike",
+};
+
+const DAYS = ["日", "月", "火", "水", "木", "金", "土"];
+
+function getDayOfWeek(dateStr) {
+  const d = new Date(dateStr + "T00:00:00");
+  return DAYS[d.getDay()];
+}
+
+function formatDate(dateStr) {
+  const parts = dateStr.split("-");
+  return `${parseInt(parts[1])}月${parseInt(parts[2])}日（${getDayOfWeek(dateStr)}）`;
+}
+
+async function loadData() {
+  try {
+    const resp = await fetch("chouka.json");
+    allData = await resp.json();
+
+    const metaResp = await fetch("meta.json");
+    const meta = await metaResp.json();
+    document.getElementById("update-time").textContent =
+      `最終更新: ${new Date(meta.updated_at).toLocaleString("ja-JP")}`;
+
+    // ソースフィルターを動的生成
+    const sources = [...new Set(allData.map(d => d.source))];
+    const filterGroup = document.getElementById("source-filters");
+    sources.forEach(s => {
+      const btn = document.createElement("button");
+      btn.className = `filter-btn`;
+      btn.dataset.source = s;
+      btn.textContent = s;
+      filterGroup.appendChild(btn);
+    });
+
+    // デフォルト日付レンジ
+    if (allData.length > 0) {
+      const dates = allData.map(d => d.date).sort();
+      document.getElementById("date-from").value = dates[0];
+      document.getElementById("date-to").value = dates[dates.length - 1];
+    }
+
+    render();
+  } catch (e) {
+    document.getElementById("content").innerHTML =
+      `<div class="empty"><div class="icon">&#x26a0;</div><p>データの読み込みに失敗しました<br>スクレイパーを実行してください</p></div>`;
+  }
+}
+
+function getFiltered() {
+  const from = document.getElementById("date-from").value;
+  const to = document.getElementById("date-to").value;
+
+  return allData.filter(d => {
+    if (currentSource !== "all" && d.source !== currentSource) return false;
+    if (from && d.date < from) return false;
+    if (to && d.date > to) return false;
+    return true;
+  });
+}
+
+function render() {
+  const data = getFiltered();
+  const main = document.getElementById("content");
+
+  // Stats
+  document.getElementById("stats-count").textContent = `${data.length} 件の釣果情報`;
+  if (data.length > 0) {
+    const dates = data.map(d => d.date).sort();
+    document.getElementById("stats-range").textContent =
+      `${formatDate(dates[0])} 〜 ${formatDate(dates[dates.length - 1])}`;
+  }
+
+  if (data.length === 0) {
+    main.innerHTML = `<div class="empty"><div class="icon">&#x1f3a3;</div><p>該当する釣果情報がありません</p></div>`;
+    return;
+  }
+
+  if (currentView === "date") {
+    renderByDate(data, main);
+  } else {
+    renderBySource(data, main);
+  }
+}
+
+function renderByDate(data, container) {
+  // 日付でグループ化
+  const groups = {};
+  data.forEach(d => {
+    if (!groups[d.date]) groups[d.date] = [];
+    groups[d.date].push(d);
+  });
+
+  const sortedDates = Object.keys(groups).sort().reverse();
+  let html = "";
+  sortedDates.forEach(date => {
+    html += `<div class="date-group">
+      <div class="date-header">${formatDate(date)} <span class="day-of-week">${date}</span></div>
+      <div class="cards">${groups[date].map((d, i) => cardHTML(d, i)).join("")}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function renderBySource(data, container) {
+  const groups = {};
+  data.forEach(d => {
+    if (!groups[d.source]) groups[d.source] = [];
+    groups[d.source].push(d);
+  });
+
+  let html = "";
+  Object.keys(groups).forEach(source => {
+    html += `<div class="date-group">
+      <div class="date-header">${source}</div>
+      <div class="cards">${groups[source].map((d, i) => cardHTML(d, i)).join("")}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function cardHTML(item) {
+  const cls = SOURCE_CLASS[item.source] || "";
+  const imgHtml = item.images.length > 0
+    ? `<img src="${item.images[0]}" alt="${item.title}" loading="lazy" onerror="this.style.display='none'">`
+    : `<div class="card-img-placeholder">&#x1f41f;</div>`;
+  const countBadge = item.images.length > 1
+    ? `<span class="img-count">${item.images.length}枚</span>`
+    : "";
+
+  return `<div class="card" onclick='openModal(${JSON.stringify(item).replace(/'/g, "&#39;")})'>
+    <div class="card-img-container">
+      ${imgHtml}
+      ${countBadge}
+    </div>
+    <div class="card-body">
+      <span class="card-source ${cls}">${item.source}</span>
+      <div class="card-title">${item.title || "(タイトルなし)"}</div>
+      <div class="card-body-text">${item.body || ""}</div>
+      <div class="card-date">${formatDate(item.date)}</div>
+    </div>
+  </div>`;
+}
+
+function openModal(item) {
+  const cls = SOURCE_CLASS[item.source] || "";
+  document.getElementById("modal-source").className = `card-source ${cls}`;
+  document.getElementById("modal-source").textContent = item.source;
+  document.getElementById("modal-title").textContent = item.title;
+  document.getElementById("modal-meta").textContent = formatDate(item.date);
+  document.getElementById("modal-content").textContent = item.body;
+  document.getElementById("modal-link").href = item.url;
+  document.getElementById("modal-images").innerHTML =
+    item.images.map(src => `<img src="${src}" alt="" loading="lazy" onerror="this.style.display='none'">`).join("");
+  document.getElementById("modal").classList.add("show");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modal").classList.remove("show");
+  document.body.style.overflow = "";
+}
+
+// ─── Event listeners ─── //
+document.getElementById("source-filters").addEventListener("click", e => {
+  if (!e.target.classList.contains("filter-btn")) return;
+  document.querySelectorAll("#source-filters .filter-btn").forEach(b => b.classList.remove("active"));
+  e.target.classList.add("active");
+  currentSource = e.target.dataset.source;
+  render();
+});
+
+document.querySelectorAll(".view-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".view-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentView = btn.dataset.view;
+    render();
+  });
+});
+
+document.getElementById("date-from").addEventListener("change", render);
+document.getElementById("date-to").addEventListener("change", render);
+document.getElementById("modal").addEventListener("click", e => {
+  if (e.target === document.getElementById("modal")) closeModal();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeModal(); });
+
+// Load!
+loadData();
+</script>
+
+</body>
+</html>
