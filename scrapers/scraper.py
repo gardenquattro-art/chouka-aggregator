@@ -163,6 +163,13 @@ def scrape_miura():
                 a = title_tag.find("a")
             post_url = a.get("href", url) if a else url
 
+            # タイトルも本文も画像もない記事は除外
+            if not title and not body and not images:
+                continue
+            # タイトルがない場合、本文の先頭を使用
+            if not title and body:
+                title = body[:50]
+
             results.append({
                 "source": "三浦渡船",
                 "date": date_str,
