@@ -297,7 +297,7 @@ def scrape_seike():
 # 5. はまかぜ渡船 (Instagram via imginn.com)
 # ─────────────────────────────────────────────
 def scrape_hamakaze():
-    """はまかぜ渡船の釣果情報をInstagram経由で取得"""
+    """はまかぜ渡船の釣果情報をInstagram経由で取得（画像はローカル保存）"""
     results = []
     url = "https://imginn.com/hamakaze_tosen/"
     try:
@@ -307,6 +307,8 @@ def scrape_hamakaze():
         return results
 
     soup = BeautifulSoup(html, "html.parser")
+    img_dir = os.path.join(os.path.dirname(DATA_DIR), "docs", "img", "hamakaze")
+    os.makedirs(img_dir, exist_ok=True)
 
     for a_tag in soup.find_all("a", href=re.compile(r"/p/")):
         img = a_tag.find("img")
@@ -317,20 +319,17 @@ def scrape_hamakaze():
         alt = img.get("alt", "")
         post_url = "https://www.instagram.com" + a_tag.get("href", "")
 
-        # プロフィール画像をスキップ
         if "profile" in alt.lower() or "avatar" in alt.lower():
             continue
 
-        # altテキストからキャプションと日付を抽出
         caption = alt[:200] if alt else ""
 
-        # 日付抽出: "1月27日" "11月14日" 等のパターン
+        # 日付抽出
         date_str = None
         m = re.search(r'(\d{1,2})月(\d{1,2})日', caption)
         if m:
             month = int(m.group(1))
             day = int(m.group(2))
-            # 年を推定（現在の月より大きければ前年）
             now = datetime.now()
             year = now.year
             if month > now.month + 1:
@@ -340,14 +339,32 @@ def scrape_hamakaze():
         if not date_str:
             continue
 
-        # タイトル: キャプション先頭
         title = caption.split('\n')[0][:60] if caption else ""
+
+        # 画像をローカルにダウンロード（CORS回避）
+        local_images = []
+        if src:
+            fname = f"{date_str}.jpg"
+            fpath = os.path.join(img_dir, fname)
+            if not os.path.exists(fpath):
+                try:
+                    img_resp = requests.get(src, headers={
+                        **HEADERS, "Referer": "https://imginn.com/"
+                    }, timeout=10)
+                    if img_resp.status_code == 200 and len(img_resp.content) > 1000:
+                        with open(fpath, "wb") as f:
+                            f.write(img_resp.content)
+                        local_images.append(f"img/hamakaze/{fname}")
+                except Exception as e:
+                    print(f"    [WARN] 画像DL失敗: {e}")
+            else:
+                local_images.append(f"img/hamakaze/{fname}")
 
         results.append({
             "source": "はまかぜ渡船",
             "date": date_str,
             "title": title,
-            "images": [src],
+            "images": local_images,
             "body": caption,
             "url": post_url,
         })
