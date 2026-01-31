@@ -294,6 +294,68 @@ def scrape_seike():
 
 
 # ─────────────────────────────────────────────
+# 5. はまかぜ渡船 (Instagram via imginn.com)
+# ─────────────────────────────────────────────
+def scrape_hamakaze():
+    """はまかぜ渡船の釣果情報をInstagram経由で取得"""
+    results = []
+    url = "https://imginn.com/hamakaze_tosen/"
+    try:
+        html = fetch(url)
+    except Exception as e:
+        print(f"  [WARN] はまかぜ渡船 取得失敗: {e}")
+        return results
+
+    soup = BeautifulSoup(html, "html.parser")
+
+    for a_tag in soup.find_all("a", href=re.compile(r"/p/")):
+        img = a_tag.find("img")
+        if not img:
+            continue
+
+        src = img.get("src", "")
+        alt = img.get("alt", "")
+        post_url = "https://www.instagram.com" + a_tag.get("href", "")
+
+        # プロフィール画像をスキップ
+        if "profile" in alt.lower() or "avatar" in alt.lower():
+            continue
+
+        # altテキストからキャプションと日付を抽出
+        caption = alt[:200] if alt else ""
+
+        # 日付抽出: "1月27日" "11月14日" 等のパターン
+        date_str = None
+        m = re.search(r'(\d{1,2})月(\d{1,2})日', caption)
+        if m:
+            month = int(m.group(1))
+            day = int(m.group(2))
+            # 年を推定（現在の月より大きければ前年）
+            now = datetime.now()
+            year = now.year
+            if month > now.month + 1:
+                year -= 1
+            date_str = f"{year}-{month:02d}-{day:02d}"
+
+        if not date_str:
+            continue
+
+        # タイトル: キャプション先頭
+        title = caption.split('\n')[0][:60] if caption else ""
+
+        results.append({
+            "source": "はまかぜ渡船",
+            "date": date_str,
+            "title": title,
+            "images": [src],
+            "body": caption,
+            "url": post_url,
+        })
+
+    return results
+
+
+# ─────────────────────────────────────────────
 # メイン
 # ─────────────────────────────────────────────
 SCRAPERS = [
@@ -301,6 +363,7 @@ SCRAPERS = [
     ("三浦渡船", scrape_miura),
     ("わかしお渡船", scrape_wakashio),
     ("清家渡船", scrape_seike),
+    ("はまかぜ渡船", scrape_hamakaze),
 ]
 
 
