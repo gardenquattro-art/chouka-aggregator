@@ -143,12 +143,11 @@ def scrape_miura():
             if not date_str:
                 continue
 
-            # 画像
+            # 画像（BloggerのUIアイコンを除外）
             images = []
             for img in el.find_all("img"):
                 src = img.get("src", "")
-                if src and len(src) > 30:
-                    # Blogger画像をフルサイズに
+                if src and len(src) > 30 and "icon18_edit" not in src and "blogblog.com" not in src:
                     src = re.sub(r'/s\d+/', '/s800/', src)
                     if src not in images:
                         images.append(src)
