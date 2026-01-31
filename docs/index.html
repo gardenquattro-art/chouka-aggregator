@@ -68,16 +68,6 @@
       font-weight: 600;
     }
 
-    /* Date chips instead of date inputs on mobile */
-    .date-chips {
-      display: flex;
-      gap: 4px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-      padding: 2px 0;
-    }
-    .date-chips::-webkit-scrollbar { display: none; }
     .date-chip {
       padding: 4px 10px;
       border: 1.5px solid #cbd5e0;
@@ -89,6 +79,17 @@
       flex-shrink: 0;
     }
     .date-chip.active { background: #2d6a9f; color: white; border-color: #2d6a9f; }
+
+    .date-input-mini {
+      padding: 3px 4px;
+      border: 1.5px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 12px;
+      width: 110px;
+      color: #4a5568;
+      background: white;
+    }
+    .date-input-mini::-webkit-date-and-time-value { text-align: left; }
 
     .view-toggle {
       display: flex;
@@ -323,7 +324,11 @@
   </div>
   <div class="filter-row">
     <span class="filter-label">期間:</span>
-    <div class="date-chips" id="date-chips"></div>
+    <span class="date-chip active" id="date-all">ALL</span>
+    <input type="date" class="date-input-mini" id="date-from">
+    <span style="color:#718096;font-size:11px">〜</span>
+    <input type="date" class="date-input-mini" id="date-to">
+    <span class="date-chip" id="date-clear" style="font-size:10px;color:#e53e3e;border-color:#fed7d7">解除</span>
   </div>
 </div>
 
@@ -357,7 +362,6 @@
 let allData = [];
 let currentSource = "all";
 let currentView = "date";
-let currentDateFilter = "all";
 
 const SOURCE_CLASS = {
   "よしだ屋": "source-yoshida",
@@ -406,21 +410,12 @@ async function loadData() {
       sf.appendChild(btn);
     });
 
-    // Date chips (unique dates, newest first)
-    const dates = [...new Set(allData.map(d => d.date))].sort().reverse();
-    const dc = document.getElementById("date-chips");
-    const allChip = document.createElement("span");
-    allChip.className = "date-chip active";
-    allChip.dataset.date = "all";
-    allChip.textContent = "ALL";
-    dc.appendChild(allChip);
-    dates.forEach(d => {
-      const chip = document.createElement("span");
-      chip.className = "date-chip";
-      chip.dataset.date = d;
-      chip.textContent = formatDate(d);
-      dc.appendChild(chip);
-    });
+    // Date range: set defaults
+    const dates = allData.map(d => d.date).sort();
+    if (dates.length > 0) {
+      document.getElementById("date-from").value = dates[0];
+      document.getElementById("date-to").value = dates[dates.length - 1];
+    }
 
     render();
   } catch (e) {
@@ -430,9 +425,16 @@ async function loadData() {
 }
 
 function getFiltered() {
+  const from = document.getElementById("date-from").value;
+  const to = document.getElementById("date-to").value;
+  const isAll = document.getElementById("date-all").classList.contains("active");
+
   return allData.filter(d => {
     if (currentSource !== "all" && d.source !== currentSource) return false;
-    if (currentDateFilter !== "all" && d.date !== currentDateFilter) return false;
+    if (!isAll) {
+      if (from && d.date < from) return false;
+      if (to && d.date > to) return false;
+    }
     return true;
   });
 }
@@ -532,12 +534,26 @@ document.getElementById("source-filters").addEventListener("click", e => {
   render();
 });
 
-document.getElementById("date-chips").addEventListener("click", e => {
-  const chip = e.target.closest(".date-chip");
-  if (!chip) return;
-  document.querySelectorAll(".date-chip").forEach(c => c.classList.remove("active"));
-  chip.classList.add("active");
-  currentDateFilter = chip.dataset.date;
+document.getElementById("date-all").addEventListener("click", () => {
+  const el = document.getElementById("date-all");
+  el.classList.add("active");
+  render();
+});
+document.getElementById("date-from").addEventListener("change", () => {
+  document.getElementById("date-all").classList.remove("active");
+  render();
+});
+document.getElementById("date-to").addEventListener("change", () => {
+  document.getElementById("date-all").classList.remove("active");
+  render();
+});
+document.getElementById("date-clear").addEventListener("click", () => {
+  const dates = allData.map(d => d.date).sort();
+  if (dates.length > 0) {
+    document.getElementById("date-from").value = dates[0];
+    document.getElementById("date-to").value = dates[dates.length - 1];
+  }
+  document.getElementById("date-all").classList.add("active");
   render();
 });
 
